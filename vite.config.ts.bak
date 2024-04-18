@@ -1,0 +1,81 @@
+// vite.config.ts
+import { defineConfig } from "vite";
+import reactRefresh from "@vitejs/plugin-react-refresh";
+import { resolve } from "path";
+import { readFileSync, readdirSync, statSync } from "fs";
+const PROJECT_NAME = "react-element-tiptap";
+
+const packageJson = JSON.parse(readFileSync("./package.json", { encoding: "utf-8" }));
+const globals = { ...(packageJson?.dependencies || {}) };
+
+let externalModules: any = [];
+// 查找组件文件
+findComponentFiles(resolve(__dirname, "src/components"));
+
+export default defineConfig({
+  plugins: [reactRefresh()],
+  // resolve: {
+  //   alias: {
+  //     "@components": resolve(__dirname, "src/components"), // 添加组件路径别名
+  //   },
+  // },
+  build: {
+    lib: {
+      entry: resolve(__dirname, "src/index.ts"), // 入口文件
+      name: "ReactElementTiptap", // 库的名称，将作为全局变量名
+      fileName: PROJECT_NAME, // 输出文件的文件名
+      formats: ["es", "cjs"],
+    },
+    rollupOptions: {
+      external: ["react", "react-dom", ...Object.keys(globals)], // 外部依赖，不会被打包进最终的库文件中
+      // output: {
+      //   exports: "named", // 使用命名导出
+      //   inlineDynamicImports: true,
+      //   entryFileNames: "es/[name].[format].js", // 指定输出文件路径
+      //   globals: {
+      //     react: "React", // 将 react 作为全局变量 React
+      //     "react-dom": "ReactDOM", // 将 react-dom 作为全局变量 ReactDOM
+      //     // 为外部模块提供全局变量名
+      //     ...externalModules.reduce((acc: any, modulePath: any) => {
+      //       const last_index = modulePath.lastIndexOf("/", modulePath.lastIndexOf("/") - 1);
+      //       const moduleName = modulePath.substring(last_index + 1, modulePath.lastIndexOf("/"));
+      //       const path_last_index = modulePath.lastIndexOf(".");
+      //       const path = modulePath.substring(0, path_last_index);
+      //       acc[path] = moduleName;
+      //       return acc;
+      //     }, {}),
+      //   },
+      // },
+      plugins: [
+        // 添加解析别名的配置
+        {
+          name: "resolve-alias",
+          resolveId(source, importer) {
+            if (source.startsWith("@/")) {
+              return {
+                id: resolve(__dirname, `src/${source.slice(2)}`),
+                external: true,
+              };
+            }
+            return null;
+          },
+        },
+      ],
+    },
+  },
+});
+
+// 递归查找项目中的组件文件，并将它们添加到外部模块路径数组中
+function findComponentFiles(dir: any) {
+  const files = readdirSync(dir);
+  files.forEach((file) => {
+    const filePath = resolve(dir, file);
+    const stat = statSync(filePath);
+    if (stat.isDirectory()) {
+      findComponentFiles(filePath);
+    } else if (file === "index.tsx") {
+      // 假设组件文件都是 index.tsx 文件
+      externalModules.push(filePath);
+    }
+  });
+}
