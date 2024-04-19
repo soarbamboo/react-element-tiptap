@@ -14,13 +14,13 @@ export default defineConfig({
   ],
   build: {
     minify: 'esbuild', // boolean | 'terser' | 'esbuild'
-    outDir: "lib",
+    outDir: "dist",
     cssTarget: "chrome61", // 防止vite将rgba颜色转化为#RGBA十六进制
     lib: {
       entry: resolve("packages/index.tsx"),
       name: "ReactElementTiptap", // 组件库的名称，将作为全局变量名
-      fileName: (format) => `${format}/index..js`, // 输出文件的文件名
-      formats: ["es", "cjs",'umd'],
+      fileName: (format) => `${format}/index.js`, // 输出文件的文件名
+      formats: ["es", "cjs"],
     },
     rollupOptions: {
       external: ["react", "react-dom"], // 却表外部化处理那些不想打包进库的依赖
